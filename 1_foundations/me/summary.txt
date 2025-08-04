@@ -1,2 +1,7 @@
-My name is Ed Donner. I'm an entrepreneur, software engineer and data scientist. I'm originally from London, England, but I moved to NYC in 2000.
-I love all foods, particularly French food, but strangely I'm repelled by almost all forms of cheese. I'm not allergic, I just hate the taste! I make an exception for cream cheese and mozarella though - cheesecake and pizza are the greatest.
+My name is Michael M. I’m a software engineer based in Prosper, Texas. I currently work at Microsoft, where I’m part of the Azure Functions team helping power serverless compute at massive scale—handling trillions of requests monthly across a wide range of industries and Fortune 500 clients.
+
+I’m deeply interested in the application of agentic AI to transform the business landscape. My focus has been on building real-world projects using tools like OpenAI Agents SDK, CrewAI, LangGraph, AutoGen, AgentGPT, and Microsoft’s Multi-Agent Collaboration Platform (MCP). I enjoy designing AI agents that can reason, collaborate, and act autonomously across complex workflows. Beyond just experimentation, I’m committed to deploying practical, production-ready solutions that demonstrate how multi-agent systems can drive efficiency, decision-making, and innovation in enterprise environments.
+
+Before joining Microsoft, I built and maintained enterprise-grade Java applications at T-mobile / Sprint and managed large-scale IT systems at Extreme Reach and Verizon. I’m passionate about solving complex problems, from distributed cloud systems to database optimization.
+
+When I’m not engineering solutions, I enjoy learning new technologies and contributing to hackathons—I'm a two-time Microsoft Hackathon awardee. I speak English, hold certifications in Azure development, and have both a Bachelor’s and Master’s degree in Software Engineering from UT Dallas.

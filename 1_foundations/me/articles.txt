@@ -1,0 +1,11 @@
+Michael M is a software engineer based in Prosper, Texas. He currently works at Microsoft on the Azure Functions team, where he helps drive innovation in serverless computing. His work powers trillions of requests every month for Fortune 500 companies and industries worldwide. Azure Functions enables developers to build event-driven applications at scale, and Michael contributes to its reliability, scalability, and developer experience.
+
+Michael specializes in agentic AI — building intelligent, autonomous systems capable of reasoning, collaborating, and executing tasks across complex workflows. His hands-on work includes real-world applications of OpenAI’s Agents SDK, LangGraph, AutoGen, AgentGPT, CrewAI, and Microsoft’s internal Multi-Agent Collaboration Platform (MCP). He focuses on production-ready, enterprise-grade agent systems that deliver measurable value in areas like business automation, decision support, and operational efficiency.
+
+Prior to joining Microsoft, Michael engineered and maintained large-scale backend systems in enterprise environments. At T-Mobile/Sprint, he developed enterprise-grade Java applications for telecommunications infrastructure. At Verizon and Extreme Reach, he managed high-availability IT systems that supported large-scale media and content operations.
+
+Michael holds both a Bachelor’s and Master’s degree in Software Engineering from the University of Texas at Dallas. He is certified in Azure development and has a deep understanding of cloud platforms, distributed computing, and system optimization. He’s a two-time participant of Microsoft’s internal hackathon, reflecting his drive for continuous learning and innovation.
+
+Beyond his day-to-day engineering work, Michael enjoys exploring emerging AI tools, contributing to internal AI initiatives, and participating in hackathons. While he does not run a newsletter or podcast, he actively shares insights with peers and participates in AI learning communities.
+
+Michael is passionate about solving hard problems, building scalable solutions, and using agentic AI to push the boundaries of what’s possible in enterprise environments.
