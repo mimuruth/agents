@@ -10,9 +10,9 @@ I couldn't be more excited to welcome you! This is the start of your 6 week adve
 
 ### Before you begin
 
-I'm here to help you be most successful! Please do reach out if I can help, either in the platform or by emailing me direct (ed@edwarddonner.com). It's always great to connect with people on LinkedIn to build up the community - you'll find me here:  
-https://www.linkedin.com/in/eddonner/  
-And this is new to me, but I'm also trying out X/Twitter at [@edwarddonner](https://x.com/edwarddonner) - if you're on X, please show me how it's done 😂  
+I'm here to help you be most successful! Please do reach out if I can help, either in the platform or by emailing me direct (michaelmuruth@gmail.com). It's always great to connect with people on LinkedIn to build up the community - you'll find me here:  
+https://www.linkedin.com/in/michael-km/ 
+And this is new to me, but I'm also trying out X/Twitter at [@MiK3_AvATaR(https://x.com/MiK3_AvATaR) - if you're on X, please show me how it's done 😂  
 
 ### The not-so-dreaded setup instructions
 
