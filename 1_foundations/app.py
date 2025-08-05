@@ -13,6 +13,9 @@ from langchain_community.document_loaders import TextLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_core.documents import Document
 
+import pandas as pd
+from collections import defaultdict
+
 load_dotenv(override=True)
 
 # Notification tools
@@ -85,6 +88,7 @@ class Me:
         self.openai = OpenAI()
         self.name = "Michael M"
         self.evaluation_log = []
+        self.user_threads = defaultdict(list)
 
         reader = PdfReader("me/linkedin.pdf")
         self.linkedin = ""
@@ -101,7 +105,7 @@ class Me:
 
         splitter = RecursiveCharacterTextSplitter(chunk_size=400, chunk_overlap=20)
         docs = splitter.split_documents([Document(page_content=raw_articles)])
-        embedding = OpenAIEmbeddings()
+        embedding = OpenAIEmbeddings(openai_api_key=os.getenv("OPENAI_API_KEY"))
         self.knowledge_base = Chroma.from_documents(docs, embedding)
 
     def retrieve_relevant_context(self, query):
@@ -142,7 +146,7 @@ If the user is engaging in discussion, try to steer them towards getting in touc
         with open("evaluation_log.jsonl", "a", encoding="utf-8") as f:
             f.write(json.dumps(entry, ensure_ascii=False) + "\n")
 
-    def chat(self, message, history):
+    def chat(self, message, history, user_id="anonymous"):
         rag_context = self.retrieve_relevant_context(message)
         messages = [{"role": "system", "content": self.system_prompt(rag_context)}] + history + [{"role": "user", "content": message}]
 
@@ -156,7 +160,10 @@ If the user is engaging in discussion, try to steer them towards getting in touc
         finish_reason = response.choices[0].finish_reason
         full_response = response.choices[0].message.content or ""
 
+        self.user_threads[user_id].append({"user": message, "bot": full_response})
+
         self.log_evaluation({
+            "user_id": user_id,
             "question": message,
             "response": full_response,
             "context": rag_context
@@ -170,6 +177,24 @@ If the user is engaging in discussion, try to steer them towards getting in touc
 
         return full_response
 
+def launch_dashboard():
+    def load_logs():
+        if not os.path.exists("evaluation_log.jsonl"):
+            return pd.DataFrame(columns=["timestamp", "user_id", "question", "response", "context"])
+        with open("evaluation_log.jsonl", "r", encoding="utf-8") as f:
+            data = [json.loads(line) for line in f.readlines()]
+        return pd.DataFrame(data)
+
+    df = load_logs()
+    return gr.Dataframe(df, label="Evaluation Log", interactive=True)
+
 if __name__ == "__main__":
     me = Me()
-    gr.ChatInterface(me.chat, type="messages").launch(ssr_mode=False, share=True)
+    with gr.Blocks() as demo:
+        gr.Markdown("# Michael M – Chat + Evaluation Log Dashboard")
+        with gr.Row():
+            user_id_input = gr.Textbox(label="User ID", value="anonymous")
+        chat_ui = gr.ChatInterface(lambda msg, hist: me.chat(msg, hist, user_id_input.value), type="messages")
+        with gr.Accordion("Evaluation Logs", open=False):
+            launch_dashboard()
+    demo.launch(ssr_mode=False)
