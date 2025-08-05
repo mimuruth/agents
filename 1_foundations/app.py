@@ -1,24 +1,25 @@
+# app.py
+
 from dotenv import load_dotenv
 from openai import OpenAI
 import json
 import os
 import requests
-from pypdf import PdfReader
 import gradio as gr
 import datetime
+import pandas as pd
+from pypdf import PdfReader
+from collections import defaultdict
+import matplotlib.pyplot as plt
 
 from langchain_community.vectorstores import Chroma
 from langchain_openai import OpenAIEmbeddings
-from langchain_community.document_loaders import TextLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_core.documents import Document
 
-import pandas as pd
-from collections import defaultdict
-
 load_dotenv(override=True)
 
-# Notification tools
+# ------------------- Tool Functions -------------------
 def push(text):
     requests.post(
         "https://api.pushover.net/1/messages.json",
@@ -31,11 +32,11 @@ def push(text):
 
 def record_user_details(email, name="Name not provided", notes="not provided"):
     push(f"Recording {name} with email {email} and notes {notes}")
-    return {"recorded": "ok"}
+    return {"message": f"✅ Recorded user: {name} ({email}) 📬"}
 
 def record_unknown_question(question):
     push(f"Recording {question}")
-    return {"recorded": "ok"}
+    return {"message": f"🤖 I didn't know the answer, but I've saved this question: \"{question}\" 📝"}
 
 record_user_details_json = {
     "name": "record_user_details",
@@ -43,18 +44,9 @@ record_user_details_json = {
     "parameters": {
         "type": "object",
         "properties": {
-            "email": {
-                "type": "string",
-                "description": "The email address of this user"
-            },
-            "name": {
-                "type": "string",
-                "description": "The user's name, if they provided it"
-            },
-            "notes": {
-                "type": "string",
-                "description": "Any additional information about the conversation that's worth recording to give context"
-            }
+            "email": {"type": "string", "description": "The user's email"},
+            "name": {"type": "string", "description": "User's name"},
+            "notes": {"type": "string", "description": "Any context"}
         },
         "required": ["email"],
         "additionalProperties": False
@@ -63,14 +55,11 @@ record_user_details_json = {
 
 record_unknown_question_json = {
     "name": "record_unknown_question",
-    "description": "Always use this tool to record any question that couldn't be answered as you didn't know the answer",
+    "description": "Always use this tool to record unknown questions",
     "parameters": {
         "type": "object",
         "properties": {
-            "question": {
-                "type": "string",
-                "description": "The question that couldn't be answered"
-            }
+            "question": {"type": "string", "description": "Unanswered question"}
         },
         "required": ["question"],
         "additionalProperties": False
@@ -82,26 +71,19 @@ tools = [
     {"type": "function", "function": record_unknown_question_json}
 ]
 
+# ------------------- Core Class -------------------
 class Me:
-
     def __init__(self):
         self.openai = OpenAI()
         self.name = "Michael M"
         self.evaluation_log = []
-        self.user_threads = defaultdict(list)
+        self.user_threads = self.load_threads()
 
         reader = PdfReader("me/linkedin.pdf")
-        self.linkedin = ""
-        for page in reader.pages:
-            text = page.extract_text()
-            if text:
-                self.linkedin += text
+        self.linkedin = "".join([page.extract_text() or "" for page in reader.pages])
 
-        with open("me/summary.txt", "r", encoding="utf-8") as f:
-            self.summary = f.read()
-
-        with open("me/articles.txt", "r", encoding="utf-8") as f:
-            raw_articles = f.read()
+        self.summary = open("me/summary.txt", "r", encoding="utf-8").read()
+        raw_articles = open("me/articles.txt", "r", encoding="utf-8").read()
 
         splitter = RecursiveCharacterTextSplitter(chunk_size=400, chunk_overlap=20)
         docs = splitter.split_documents([Document(page_content=raw_articles)])
@@ -116,39 +98,45 @@ class Me:
         results = []
         for tool_call in tool_calls:
             tool_name = tool_call.function.name
-            arguments = json.loads(tool_call.function.arguments)
-            print(f"Tool called: {tool_name}", flush=True)
+            args = json.loads(tool_call.function.arguments)
             tool = globals().get(tool_name)
-            result = tool(**arguments) if tool else {}
-            results.append({"role": "tool", "content": json.dumps(result), "tool_call_id": tool_call.id})
+            result = tool(**args) if tool else {"message": "❌ Tool not found"}
+            results.append({
+                "role": "tool",
+                "content": result["message"],
+                "tool_call_id": tool_call.id
+            })
         return results
 
     def system_prompt(self, rag_context=""):
-        system_prompt = f"You are acting as {self.name}. You are answering questions on {self.name}'s website, \
-particularly questions related to {self.name}'s career, background, skills and experience. \
-Your responsibility is to represent {self.name} for interactions on the website as faithfully as possible. \
-You are given a summary of {self.name}'s background and LinkedIn profile which you can use to answer questions. \
-Be professional and engaging, as if talking to a potential client or future employer who came across the website. \
-If you don't know the answer to any question, use your record_unknown_question tool to record the question that you couldn't answer, even if it's about something trivial or unrelated to career. \
-If the user is engaging in discussion, try to steer them towards getting in touch via email; ask for their email and record it using your record_user_details tool."
-
-        system_prompt += f"\n\n## Summary:\n{self.summary}\n\n## LinkedIn Profile:\n{self.linkedin}\n\n"
+        prompt = f"You are acting as {self.name}, representing his professional background. "\
+                 f"Always stay in character. Use the following background:\n\n"\
+                 f"## Summary:\n{self.summary}\n\n"\
+                 f"## LinkedIn:\n{self.linkedin}\n"
         if rag_context:
-            system_prompt += f"\n## Additional Relevant Articles (RAG):\n{rag_context}\n"
-
-        system_prompt += f"\nWith this context, please chat with the user, always staying in character as {self.name}."
-        return system_prompt
+            prompt += f"\n## Retrieved Articles:\n{rag_context}\n"
+        return prompt
 
     def log_evaluation(self, entry):
-        timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        entry["timestamp"] = timestamp
+        entry["timestamp"] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         self.evaluation_log.append(entry)
         with open("evaluation_log.jsonl", "a", encoding="utf-8") as f:
             f.write(json.dumps(entry, ensure_ascii=False) + "\n")
 
+    def save_threads(self):
+        with open("threads.json", "w", encoding="utf-8") as f:
+            json.dump(self.user_threads, f, ensure_ascii=False)
+
+    def load_threads(self):
+        if os.path.exists("threads.json"):
+            with open("threads.json", "r", encoding="utf-8") as f:
+                return defaultdict(list, json.load(f))
+        return defaultdict(list)
+
     def chat(self, message, history, user_id="anonymous"):
         rag_context = self.retrieve_relevant_context(message)
-        messages = [{"role": "system", "content": self.system_prompt(rag_context)}] + history + [{"role": "user", "content": message}]
+        thread = self.user_threads[user_id]
+        messages = [{"role": "system", "content": self.system_prompt(rag_context)}] + thread + [{"role": "user", "content": message}]
 
         response = self.openai.chat.completions.create(
             model="gpt-4o-mini",
@@ -158,43 +146,68 @@ If the user is engaging in discussion, try to steer them towards getting in touc
         )
 
         finish_reason = response.choices[0].finish_reason
-        full_response = response.choices[0].message.content or ""
+        assistant_message = response.choices[0].message
 
-        self.user_threads[user_id].append({"user": message, "bot": full_response})
+        tool_responses = []
+        if finish_reason == "tool_calls":
+            tool_calls = assistant_message.tool_calls
+            tool_responses = self.handle_tool_call(tool_calls)
+            messages.append(assistant_message)
+            messages.extend(tool_responses)
+
+        reply = assistant_message.content
+        if not reply:
+            reply = "🤖 I'm not sure how to answer that yet, but I've saved your question for review. 👍"
+
+        # Update persistent history
+        self.user_threads[user_id].append({"role": "user", "content": message})
+        self.user_threads[user_id].append({"role": "assistant", "content": reply})
+        self.save_threads()
 
         self.log_evaluation({
             "user_id": user_id,
             "question": message,
-            "response": full_response,
+            "response": reply,
             "context": rag_context
         })
 
-        if finish_reason == "tool_calls":
-            tool_calls = response.choices[0].message.tool_calls
-            results = self.handle_tool_call(tool_calls)
-            messages.append(response.choices[0].message)
-            messages.extend(results)
+        return reply
 
-        return full_response
-
+# ------------------- Dashboard -------------------
 def launch_dashboard():
     def load_logs():
         if not os.path.exists("evaluation_log.jsonl"):
             return pd.DataFrame(columns=["timestamp", "user_id", "question", "response", "context"])
         with open("evaluation_log.jsonl", "r", encoding="utf-8") as f:
-            data = [json.loads(line) for line in f.readlines()]
-        return pd.DataFrame(data)
+            return pd.DataFrame(json.loads(line) for line in f)
+
+    def plot_question_volume(df):
+        df['timestamp'] = pd.to_datetime(df['timestamp'])
+        counts = df['timestamp'].dt.date.value_counts().sort_index()
+        plt.figure(figsize=(8, 3))
+        counts.plot(kind="bar")
+        plt.title("📊 Questions per Day")
+        plt.xlabel("Date")
+        plt.ylabel("Count")
+        plt.tight_layout()
+        return plt
 
     df = load_logs()
-    return gr.Dataframe(df, label="Evaluation Log", interactive=True)
+    with gr.Column():
+        gr.Markdown("### 📋 Evaluation Log")
+        gr.Dataframe(df, interactive=True, label="Logs")
+        if not df.empty:
+            gr.Plot(plot_question_volume(df))
 
+# ------------------- Launch UI -------------------
 if __name__ == "__main__":
     me = Me()
     with gr.Blocks() as demo:
-        gr.Markdown("# Michael M – Chat + Evaluation Log Dashboard")
+        gr.Markdown("# 🤖 Chat with Michael M\nA personal AI assistant powered by OpenAI + LangChain + Gradio")
         with gr.Row():
             user_id_input = gr.Textbox(label="User ID", value="anonymous")
         chat_ui = gr.ChatInterface(lambda msg, hist: me.chat(msg, hist, user_id_input.value), type="messages")
-        with gr.Accordion("Evaluation Logs", open=False):
+        with gr.Accordion("📈 Evaluation Logs", open=False):
             launch_dashboard()
-    demo.launch(ssr_mode=False)
+    demo.launch()
+

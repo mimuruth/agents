@@ -161,6 +161,7 @@ Here's a step-by-step breakdown of how the updated app.py works based on the lat
   - Appends interaction metadata to a list and writes to evaluation_log.jsonl.
   - Each log entry includes:
     - Timestamp
+	- User ID
     - Question
     - Response
     - RAG context

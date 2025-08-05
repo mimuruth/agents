@@ -9,3 +9,4 @@ langchain-community
 langchain_openai
 tiktoken
 chromadb
+matplotlib
