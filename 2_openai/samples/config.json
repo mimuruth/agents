@@ -1,0 +1,7 @@
+{
+   "retry_attempts":3,
+   "api_base_url":"https://jsonplaceholder.typicode.com/users",
+   "output_file":"user_results.json",
+   "timeout_per_task":5
+}
+

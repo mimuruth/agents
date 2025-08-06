@@ -1,0 +1,5 @@
+Hello Async World!
+This file is used to test asynchronous file reading.
+Each line in this file has meaningful content.
+Feel free to modify this content as needed.
+Enjoy learning asyncio!
